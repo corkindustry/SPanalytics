@@ -1,0 +1,68 @@
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery.SPServices/2014.02/jquery.SPServices-2014.02.min.js"></script>
+
+<div id="analytics" value="CUSTOMLISTNAME"></div>
+
+<script>
+function lognew(myname, myemail, listid) {
+    $().SPServices({
+        operation: "UpdateListItems", 
+        async: false, 
+        batchCmd: "New", 
+        listName: listid, 
+        valuepairs: [["Title", myname], ["email", myemail], ["visits", 1]], 
+        completefunc: function(xData, Status) {
+            console.log(myname + " New");
+        }
+    })
+}
+
+function logupdate(myname, myemail, listid, visit, id) {
+    visit = visit + 1;
+    $().SPServices({
+        operation: "UpdateListItems",
+        async: false, 
+        batchCmd: "Update", 
+        listName: listid, 
+        ID: id, 
+        valuepairs: [["Title", myname], ["email", myemail], ["visits", visit]], 
+        completefunc: function(xData, Status) {
+            console.log(myname + " Update");
+        }
+    })
+}
+
+$(document).ready(function() {
+    var userInfo = $().SPServices.SPGetCurrentUser({
+        fieldNames: ["Title", "EMail"], 
+        debug: false
+    });
+    var theList = $('#analytics').attr('value');
+    var uname = userInfo.Title;
+    var email = userInfo.EMail;
+    var itemID = [], h = 0;
+    var itemEmail = [], i = 0;
+    var visitCount = [], j = 0;
+    $().SPServices({
+        operation: "GetListItems", 
+        async: false, 
+        listName: theList, 
+        CAMLViewFields: "<ViewFields><FieldRef Name='ID' /><FieldRef Name='email' /><FieldRef Name='visits' /></ViewFields>", 
+        completefunc: function (xData, Status) {
+            $(xData.responseXML).SPFilterNode("z:row").each(function() {
+                itemID[h++] = $(this).attr("ows_ID");
+                itemEmail[i++] = $(this).attr("ows_email");
+                visitCount[j++] = $(this).attr("ows_visits");
+            });
+        }
+    })
+    var count = $.inArray(email, itemEmail);
+    var indexID = itemID[count];
+    var indexVisits = Math.round(visitCount[count]);
+    if (count != -1) {
+        logupdate(uname, email, theList, indexVisits, indexID);
+        } else {
+            lognew(uname, email, theList);
+        }
+    })
+</script>
